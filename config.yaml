@@ -1,0 +1,39 @@
+# =====================================================================
+# AI Radar - application config
+# (sources live in resources.yaml; your prompts live in prompts/)
+# =====================================================================
+
+llm:
+  # Switch backend by changing this single value: "groq" or "ollama".
+  provider: groq
+
+  groq:
+    # Best free/fast option. Get a key at https://console.groq.com/keys
+    # then store it: setx GROQ_API_KEY "gsk_..."  (reopen the terminal after)
+    model: llama-3.3-70b-versatile
+    api_key_env: GROQ_API_KEY
+
+  ollama:
+    # Fallback. Local default below; for Ollama Cloud use:
+    #   host: https://ollama.com
+    #   api_key_env: OLLAMA_API_KEY
+    model: qwen3:8b
+    host: http://localhost:11434
+    api_key_env: OLLAMA_API_KEY   # only needed for Ollama Cloud
+
+pipeline:
+  lookback_hours: 24        # only consider items published in this window
+  triage_threshold: 50      # pass-1 score >= this -> gets a full read & summary
+  max_text_chars: 8000      # truncate article text sent to the LLM (cost control)
+  request_delay_seconds: 1  # pause between LLM calls (be nice to rate limits)
+
+prompts:
+  preferences: prompts/preferences.md
+  rubric: prompts/rubric.md
+
+db:
+  path: radar.db
+
+http:
+  # Reddit and some sites reject requests without a real User-Agent.
+  user_agent: "ai-radar/1.0 (personal research aggregator)"

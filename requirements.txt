@@ -1,0 +1,18 @@
+# --- ingestion ---
+feedparser          # RSS / Atom parsing (also used for the arXiv Atom API)
+trafilatura         # full article text extraction
+httpx               # API calls (arXiv, Hacker News, Reddit, Hugging Face)
+beautifulsoup4      # GitHub Trending HTML parsing (no stable API)
+lxml                # fast parser backend for beautifulsoup4
+python-dateutil     # robust date parsing across feeds
+
+# --- persistence ---
+SQLAlchemy          # ORM over SQLite
+
+# --- LLM providers (switchable) ---
+groq                # Groq cloud API (primary)
+ollama              # Ollama local / cloud (fallback)
+
+# --- config + UI ---
+PyYAML              # resources.yaml / config.yaml
+streamlit           # backlog UI

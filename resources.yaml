@@ -1,0 +1,139 @@
+# =====================================================================
+# AI Radar - sources
+#
+# Each entry needs a `type` (decides which fetcher adapter runs) and a
+# `name` (shown in the UI). Set `enabled: false` to skip a source without
+# deleting it. A broken/unreachable source only logs a warning; it never
+# crashes the run, so it's safe to experiment.
+#
+# Adapter types: arxiv | huggingface | hackernews | github_trending |
+#                reddit | rss
+# =====================================================================
+
+sources:
+
+  # ---------------------------------------------------------------
+  # Papers - arXiv native API (excellent, free)
+  # Browse categories at https://arxiv.org/category_taxonomy
+  # ---------------------------------------------------------------
+  - name: "arXiv (AI/ML/NLP)"
+    type: arxiv
+    enabled: true
+    categories: ["cs.AI", "cs.LG", "cs.CL"]
+    max_results: 60
+
+  # ---------------------------------------------------------------
+  # Papers - Hugging Face daily papers (uses the public JSON API,
+  # more reliable than their RSS)
+  # ---------------------------------------------------------------
+  - name: "Hugging Face Papers"
+    type: huggingface
+    enabled: true
+    max_results: 50
+
+  # ---------------------------------------------------------------
+  # Hacker News - Algolia API, filtered by keyword + min points
+  # ---------------------------------------------------------------
+  - name: "Hacker News"
+    type: hackernews
+    enabled: true
+    keywords: ["AI", "LLM", "machine learning", "neural network", "GPT", "open source model"]
+    min_points: 30
+    per_keyword: 20
+
+  # ---------------------------------------------------------------
+  # GitHub Trending - scraped (no stable official API)
+  # since: daily | weekly | monthly ; language optional ("" = all)
+  # ---------------------------------------------------------------
+  - name: "GitHub Trending"
+    type: github_trending
+    enabled: true
+    specs:
+      - { language: "", since: "daily" }
+      - { language: "python", since: "daily" }
+      - { language: "jupyter-notebook", since: "weekly" }
+
+  # ---------------------------------------------------------------
+  # Reddit - public JSON API (needs a real User-Agent, set in config.yaml)
+  # ---------------------------------------------------------------
+  - name: "r/LocalLLaMA"
+    type: reddit
+    enabled: true
+    subreddit: LocalLLaMA
+    listing: new          # new | hot | top
+    limit: 40
+
+  - name: "r/MachineLearning"
+    type: reddit
+    enabled: true
+    subreddit: MachineLearning
+    listing: new
+    limit: 40
+
+  # ---------------------------------------------------------------
+  # AI company blogs - RSS
+  # NOTE: company feed URLs change often. The ones marked enabled:false
+  # are best-guesses you should confirm in a browser before turning on.
+  # ---------------------------------------------------------------
+  - name: "OpenAI Blog"
+    type: rss
+    enabled: true
+    url: "https://openai.com/news/rss.xml"
+
+  - name: "Google DeepMind Blog"
+    type: rss
+    enabled: true
+    url: "https://deepmind.google/blog/rss.xml"
+
+  - name: "Anthropic News"
+    type: rss
+    enabled: false        # verify URL before enabling
+    url: "https://www.anthropic.com/rss.xml"
+
+  - name: "Meta AI Blog"
+    type: rss
+    enabled: false        # verify URL before enabling
+    url: "https://ai.meta.com/blog/rss/"
+
+  # ---------------------------------------------------------------
+  # Substack newsletters - RSS (every Substack has /feed)
+  # ---------------------------------------------------------------
+  - name: "Latent Space"
+    type: rss
+    enabled: true
+    url: "https://www.latent.space/feed"
+
+  - name: "Ahead of AI (Sebastian Raschka)"
+    type: rss
+    enabled: true
+    url: "https://magazine.sebastianraschka.com/feed"
+
+  # Add any Substack by appending /feed to its URL, e.g.:
+  # - name: "Import AI"
+  #   type: rss
+  #   enabled: true
+  #   url: "https://importai.substack.com/feed"
+
+  # ---------------------------------------------------------------
+  # Zenn / Qiita - RSS (Japanese dev communities). Topic feeds keep
+  # the volume down; confirm the topic slugs match what you want.
+  # ---------------------------------------------------------------
+  - name: "Zenn (AI topic)"
+    type: rss
+    enabled: false        # verify topic feed before enabling
+    url: "https://zenn.dev/topics/ai/feed"
+
+  - name: "Qiita (機械学習 tag)"
+    type: rss
+    enabled: false        # verify tag feed before enabling
+    url: "https://qiita.com/tags/機械学習/feed"
+
+  # ---------------------------------------------------------------
+  # Reddit (more) - add as many as you like:
+  # - name: "r/StableDiffusion"
+  #   type: reddit
+  #   enabled: true
+  #   subreddit: StableDiffusion
+  #   listing: hot
+  #   limit: 30
+  # ---------------------------------------------------------------
