@@ -19,7 +19,9 @@ Every step writes to the DB as it goes, so a crash/rate-limit resumes cleanly.
 from __future__ import annotations
 
 import logging
+import os
 import time
+from pathlib import Path
 
 import trafilatura
 import yaml
@@ -34,6 +36,24 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("main")
+
+
+def load_dotenv(path: str = ".env") -> None:
+    """Load KEY=VALUE lines from a .env file into os.environ.
+
+    Kept dependency-free on purpose. Existing environment variables win
+    (`setdefault`), so the shell or Task Scheduler can still override a key
+    per-run. Secrets live here, never in config.yaml (which is committed).
+    """
+    env_file = Path(path)
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 def load_yaml(path: str) -> dict:
@@ -62,6 +82,7 @@ def extract_text(url: str, fallback: str) -> str:
 
 
 def run() -> None:
+    load_dotenv()  # pull API keys from .env into the environment first
     config = load_yaml("config.yaml")
     resources = load_yaml("resources.yaml")
     preferences = load_text(config["prompts"]["preferences"])

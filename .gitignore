@@ -1,2 +1,9 @@
 __pycache__/
 *.py[cod]
+
+# Secrets - never commit real API keys
+.env
+
+# Local data / environments
+radar.db
+.venv/
