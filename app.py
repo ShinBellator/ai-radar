@@ -66,7 +66,7 @@ c4.metric("Rejected (low score)", counts.get(dbmod.REJECTED, 0))
 st.sidebar.header("Filters")
 view = st.sidebar.radio(
     "Show",
-    ["Backlog", "Read", "Archived", "All evaluated"],
+    ["Backlog", "Read", "Archived", "All evaluated", "Rejected"],
     index=0,
 )
 status_map = {
@@ -74,22 +74,26 @@ status_map = {
     "Read": [dbmod.READ],
     "Archived": [dbmod.ARCHIVED],
     "All evaluated": [dbmod.EVALUATED, dbmod.READ, dbmod.ARCHIVED],
+    "Rejected": [dbmod.REJECTED],
 }
 statuses = status_map[view]
 
 all_sources = database.distinct_sources()
 chosen_sources = st.sidebar.multiselect("Sources", all_sources, default=[])
-min_score = st.sidebar.slider("Minimum score", 0, 100, 0, step=5)
+min_score = st.sidebar.slider("Minimum score", 0, 100, 75, step=5)
 search = st.sidebar.text_input("Search title / summary")
 
 if st.sidebar.button("🔄 Refresh"):
     st.rerun()
 
 # --- results ----------------------------------------------------------
+# Rejected items are low-scored by definition, so the score filter would hide
+# them; ignore it when you're explicitly inspecting the rejected pile.
+effective_min = 0 if view == "Rejected" else min_score
 items = database.query_items(
     statuses=statuses,
     sources=chosen_sources or None,
-    min_score=min_score,
+    min_score=effective_min,
     search=search or None,
 )
 
@@ -112,10 +116,10 @@ for item in items:
                 p for p in [item.source, humanize_age(item.published_at), read_time] if p
             )
             st.caption(meta)
-            if item.summary:
-                st.write(item.summary)
             if item.reasons:
                 st.markdown(f"*Why:* {item.reasons}")
+            if item.summary:
+                st.write(item.summary)
             tagline = " ".join(f"`{t}`" for t in tags)
             line = " · ".join(p for p in [tagline] if p)
             if line:

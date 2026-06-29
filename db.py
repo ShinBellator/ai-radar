@@ -155,14 +155,26 @@ class Database:
         return self.get_by_status(TRIAGED)
 
     # --- pipeline writes ----------------------------------------------
-    def set_triage(self, item_id: int, score: int, threshold: int, model: str) -> None:
+    def set_triage(
+        self,
+        item_id: int,
+        score: int,
+        threshold: int,
+        model: str,
+        reject_cap: int = 25,
+    ) -> None:
         with self.Session() as s:
             item = s.get(Item, item_id)
             if item is None:
                 return
-            item.score = int(score)
             item.model_used = model
-            item.status = TRIAGED if score >= threshold else REJECTED
+            if score >= threshold:
+                item.status = TRIAGED
+                item.score = int(score)
+            else:
+                # Rejected: cap to a low ceiling so it reads as clearly "very low".
+                item.status = REJECTED
+                item.score = min(int(score), reject_cap)
             s.commit()
 
     def set_evaluation(self, item_id: int, result: dict, model: str) -> None:

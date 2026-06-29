@@ -76,12 +76,16 @@ poetry env use 3.12     # point Poetry at your Python 3.12 interpreter
 poetry install          # create the virtualenv and install all dependencies
 ```
 
-Then add a free Groq API key (get one at <https://console.groq.com/keys>) and
-reopen your terminal:
+Then add a free Groq API key (get one at <https://console.groq.com/keys>). Copy
+the env template and paste your key into the (git-ignored) `.env`:
 
 ```powershell
-setx GROQ_API_KEY "gsk_your_key_here"
+copy .env.example .env    # then edit .env: GROQ_API_KEY=gsk_your_key_here
 ```
+
+`main.py` loads `.env` automatically. A real environment variable
+(`setx GROQ_API_KEY "gsk_..."`, reopen the terminal) also works and takes
+precedence. Reddit needs no key — it's read through public RSS feeds.
 
 > Prefer to run fully offline? Skip the key, install [Ollama](https://ollama.com),
 > run `ollama pull qwen3:8b`, and set `provider: ollama` in `config.yaml`.

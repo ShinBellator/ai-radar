@@ -7,3 +7,5 @@ __pycache__/
 # Local data / environments
 radar.db
 .venv/
+.claude/
+.study-notes/

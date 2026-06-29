@@ -104,7 +104,7 @@ TRIAGE_SCHEMA = '{"score": <integer 0-100>}'
 EVAL_SCHEMA = (
     '{"score": <integer 0-100>, '
     '"summary": "<2-3 sentence what-and-why>", '
-    '"reasons": "<one line: why it matches my preferences>", '
+    '"reasons": "<one line, addressed to you: why this matches your interests>", '
     '"read_time_minutes": <integer>, '
     '"tags": ["<short topic tag>", "..."]}'
 )
@@ -149,6 +149,9 @@ class Evaluator:
             "## Scoring rubric\n"
             f"{self.rubric}\n\n"
             "## Output\n"
+            "In any 'summary' and 'reasons' text, address the reader directly "
+            "in the second person ('you', 'your'). Never use the first person "
+            "('I', 'me', 'my').\n"
             f"Respond with ONLY valid JSON matching this shape: {schema}\n"
             "No markdown, no commentary, no extra keys."
         )

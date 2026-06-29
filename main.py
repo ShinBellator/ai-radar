@@ -89,7 +89,10 @@ def run() -> None:
     rubric = load_text(config["prompts"]["rubric"])
 
     pipe = config["pipeline"]
-    settings = {"user_agent": config["http"]["user_agent"]}
+    settings = {
+        "user_agent": config["http"]["user_agent"],
+        "reddit_budget_seconds": pipe.get("reddit_budget_minutes", 22) * 60,
+    }
 
     database = dbmod.Database(config["db"]["path"])
 
@@ -103,6 +106,7 @@ def run() -> None:
     log.info("LLM provider: %s", provider.name)
     evaluator = Evaluator(provider, preferences, rubric, pipe["max_text_chars"])
     threshold = pipe["triage_threshold"]
+    reject_cap = pipe.get("reject_score_cap", 25)
     delay = pipe["request_delay_seconds"]
 
     # 4. pass 1 - triage every NEW item
@@ -111,7 +115,9 @@ def run() -> None:
     for item in new_items:
         try:
             result = evaluator.triage(item)
-            database.set_triage(item.id, result["score"], threshold, provider.name)
+            database.set_triage(
+                item.id, result["score"], threshold, provider.name, reject_cap
+            )
         except Exception as exc:  # noqa: BLE001 - one bad item must not stop the batch
             log.warning("triage failed for #%s (%s): %s", item.id, item.title[:60], exc)
         time.sleep(delay)

@@ -4,13 +4,13 @@
 > The model returns a relevance score from 0–100. Tune the bands below to make
 > the backlog stricter or looser.
 
-Score each item from 0 to 100 for how worth-my-time it is, given the reader
+Score each item from 0 to 100 for how worth your time it is, given your
 preferences. Judge the *content itself*, not how popular it is.
 
 ## Score bands
-- **90–100 — Must read.** Directly in my core interests, novel and substantive
+- **90–100 — Must read.** Directly in your core interests, novel and substantive
   (e.g. a strong new open model, a genuinely new method, a deep practitioner
-  write-up). I'd be annoyed to miss it.
+  write-up). You'd be annoyed to miss it.
 - **70–89 — Worth reading.** Solidly relevant and has real technical content,
   even if not groundbreaking.
 - **50–69 — Maybe.** Related and somewhat useful, but incremental, narrow, or
@@ -29,14 +29,14 @@ preferences. Judge the *content itself*, not how popular it is.
   the summary honest about the uncertainty.
 
 ## Summary instructions (used only for items that pass triage)
-- Write 2–3 sentences. First say **what** the content is about, then **why it
-  may matter to me** specifically.
+- Write 2–3 sentences, addressed to you. First say **what** the content is
+  about, then **why it may matter to you** specifically.
 - Be concrete and neutral. No hype words, no "this groundbreaking...".
 - If it's a paper, mention the core contribution. If it's a release, mention
   what's new and notable.
 
 ## Estimated read time
-- Also estimate how long it would take me to read/absorb the item, in **whole
+- Also estimate how long it would take you to read/absorb the item, in **whole
   minutes** (`read_time_minutes`).
 - Base it on the length and density of the content: a short blog post or release
   note might be 3–5 min; a long engineering deep-dive 15–25 min; a dense paper

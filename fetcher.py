@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from time import mktime
+from time import mktime, monotonic, sleep
 
 import feedparser
 import httpx
@@ -23,12 +23,38 @@ log = logging.getLogger("fetcher")
 
 HTTP_TIMEOUT = 20.0
 
-# Reddit blocks generic/bot User-Agents on its public JSON endpoints; a
-# realistic desktop-browser UA is the cheapest way through the 403.
-BROWSER_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-)
+# Reddit's public RSS needs no auth, but it's rate-limited: a single request can
+# come back with x-ratelimit-remaining: 0 and a reset of ~40s. We pace by those
+# headers and retry 429s so every subreddit gets covered, while a per-run time
+# budget (set from config) caps the whole crawl so it can't blow past ~30 min.
+_REDDIT_MAX_WAIT = 60.0   # cap on any single rate-limit sleep
+_REDDIT_RETRIES = 2       # extra 429 attempts per subreddit before skipping it
+_reddit_next_ok = 0.0     # monotonic time we may hit Reddit again
+_reddit_deadline = 0.0    # monotonic time the crawl must stop waiting
+
+
+def _reddit_budget_left() -> float:
+    return _reddit_deadline - monotonic()
+
+
+def _reddit_wait() -> None:
+    """Wait out the reported rate-limit window, but never past the run budget."""
+    wait = min(_reddit_next_ok - monotonic(), _REDDIT_MAX_WAIT, _reddit_budget_left())
+    if wait > 0:
+        sleep(wait)
+
+
+def _reddit_note_headers(headers) -> None:
+    """Schedule the next allowed call from Reddit's x-ratelimit-* headers."""
+    global _reddit_next_ok
+    try:
+        remaining = float(headers.get("x-ratelimit-remaining", "1"))
+        reset = float(headers.get("x-ratelimit-reset", "0"))
+    except (TypeError, ValueError):
+        remaining, reset = 1.0, 0.0
+    # Out of budget -> wait the reset (+3s so it's truly refilled); else go now.
+    delay = min(reset + 3.0, _REDDIT_MAX_WAIT) if remaining < 1 else 0.0
+    _reddit_next_ok = monotonic() + delay
 
 
 @dataclass
@@ -189,30 +215,58 @@ def fetch_hackernews(cfg: dict, settings: dict) -> list[RawItem]:
 
 
 def fetch_reddit(cfg: dict, settings: dict) -> list[RawItem]:
-    """A subreddit's public JSON listing (needs a real User-Agent)."""
+    """A subreddit's Atom feed at /r/<sub>/<listing>/.rss.
+
+    Reddit's priced API now needs pre-approval that personal scripts can't get,
+    and the unauthenticated `.json` endpoint returns 403. The public RSS feeds
+    still work with no auth - but they're rate-limited, so we pace by the
+    x-ratelimit-* headers and retry 429s (coverage first). A per-run budget
+    (settings['reddit_budget_seconds']) stops the crawl waiting once it's spent,
+    so any leftover subs simply skip and get caught next run via dedup.
+    feedparser fetches with its own (blocked) UA, so we pull with httpx first.
+    """
+    global _reddit_deadline
+    if _reddit_deadline == 0.0:  # first Reddit call this run: start the clock
+        budget = settings.get("reddit_budget_seconds", 1320)
+        _reddit_deadline = monotonic() + budget
+
     sub = cfg["subreddit"]
     listing = cfg.get("listing", "new")
-    url = f"https://www.reddit.com/r/{sub}/{listing}.json"
-    r = httpx.get(
-        url,
-        params={"limit": cfg.get("limit", 40)},
-        headers={"User-Agent": BROWSER_UA},  # generic UA -> 403 Blocked
-        timeout=HTTP_TIMEOUT,
-        follow_redirects=True,
-    )
-    r.raise_for_status()
+    url = f"https://www.reddit.com/r/{sub}/{listing}/.rss"
+    user_agent = settings["user_agent"]
+
+    r = None
+    for attempt in range(_REDDIT_RETRIES + 1):
+        _reddit_wait()
+        r = httpx.get(
+            url,
+            headers={"User-Agent": user_agent},
+            timeout=HTTP_TIMEOUT,
+            follow_redirects=True,
+        )
+        _reddit_note_headers(r.headers)
+        # Stop if it worked, or we're out of retries / out of time budget.
+        out_of_time = _reddit_budget_left() <= 0
+        if r.status_code != 429 or attempt == _REDDIT_RETRIES or out_of_time:
+            break
+
+    r.raise_for_status()  # a leftover 429/other error -> fetch_all skips this sub
+
+    feed = feedparser.parse(r.text)  # Reddit returns Atom; feedparser handles it
     items: list[RawItem] = []
-    for child in r.json().get("data", {}).get("children", []):
-        d = child.get("data", {})
+    for e in feed.entries:
+        published = _from_struct(
+            getattr(e, "published_parsed", None) or getattr(e, "updated_parsed", None)
+        )
         items.append(
             RawItem(
                 source=cfg["name"],
                 source_type="reddit",
-                url="https://www.reddit.com" + d.get("permalink", ""),
-                title=d.get("title", ""),
-                author=d.get("author", ""),
-                published_at=_parse_date(d.get("created_utc")),
-                raw_text=d.get("selftext", "") or "",
+                url=e.get("link", ""),
+                title=e.get("title", ""),
+                author=e.get("author", "").removeprefix("/u/"),
+                published_at=published,
+                raw_text=e.get("summary", ""),  # post body as HTML
             )
         )
     return items
